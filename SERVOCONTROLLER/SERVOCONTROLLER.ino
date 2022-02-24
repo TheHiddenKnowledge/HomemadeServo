@@ -15,7 +15,17 @@ int previousTime = 0;
 int currentTime; 
 // Delta time used for integration and differentiation 
 int elapsedTime;  
+// PID gains for controller
+int P = 10;
+int I = 1/100;
+int D = 0;
 void setup() {
+  // Setting the timer/counter 0 registers to enable fast PWM mode with no prescalar
+  TCCR0A = 2<<COM0A0 | 2<<COM0B0 | 3<<WGM00;
+  TCCR0B = 0<<WGM02 | 1<<CS00;
+  // Defining pin states
+  pinMode(input, INPUT);
+  pinMode(pot, INPUT);
   pinMode(motor1, OUTPUT);
   pinMode(motor2, OUTPUT);
 }
@@ -25,17 +35,15 @@ int servo_run(int offset){
   currentTime = millis();
   elapsedTime = currentTime - previousTime;
   previousTime = currentTime; 
-  // Calculates the motor correction using PID gains below 
-  int P = 10;
-  int I = 1/1000;
-  int D = 100;
-  // Present response
-  offset = P*offset;
+  // Calculates the motor correction using PID gains given 
+  // Present response 
+  int present = P*offset;
   // Past response 
-  offset += I*offset*elapsedTime;
+  int past = I*offset*elapsedTime;
   // Future response 
-  offset += D*(offset-prevoffset)/elapsedTime;
+  int future = D*(offset-prevoffset)/elapsedTime;
   // Saturates the PID output and scales it to match the 
+  offset = present + past + future;
   offset = constrain(offset,-980,980);
   offset = map(offset,-980,980,-255,255);
   // Applies the PID output to the half bridge 
